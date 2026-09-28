@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Vision · Zero-Shot Image Classification & Few-Shot Prototypes</title>
+    <meta name="description" content="State-of-the-art Zero-Shot and Few-Shot image classification powered by OpenAI CLIP. Compare images with text labels or build visual prototypes.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-shell">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M3 12c2.5-5 6.5-8 9-8s6.5 3 9 8c-2.5 5-6.5 8-9 8s-6.5-3-9-8z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <strong>Virtual Vision</strong>
+                    <span>AI Studio · CLIP</span>
+                </div>
+            </div>
+
+            <p class="nav-label">Workspace</p>
+            <nav id="main-navigation" aria-label="Main navigation"></nav>
+
+            <div class="sidebar-footer">
+                <div class="model-info-row">
+                    <span class="status-dot pulsing" id="sidebar-dot"></span>
+                    <strong id="sidebar-model">openai/clip-vit-base-patch32</strong>
+                </div>
+                <span id="sidebar-model-status">Checking local API…</span>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main>
+            <!-- Topbar Header -->
+            <header class="topbar">
+                <div>
+                    <p class="eyebrow">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        Neural Vision Lab
+                    </p>
+                    <h1>Zero-Shot & Few-Shot Studio</h1>
+                    <p class="intro">Classify query images using open-vocabulary natural language labels (zero-shot) or build real-time visual prototypes from example images.</p>
+                </div>
+
+                <div class="top-actions">
+                    <button class="status-badge-btn" id="backend-status-btn" title="Click to view API connection diagnostics">
+                        <span class="status-dot pulsing" id="top-status-dot"></span>
+                        <span class="status" id="backend-status" role="status">Checking backend</span>
+                    </button>
+                    <button class="action-btn" id="demo-mode-btn" title="Toggle Demo mode to test features when server is offline">
+                        <span>🧪 Demo Mode</span>
+                    </button>
+                    <span id="reset-button-host"></span>
+                </div>
+            </header>
+
+            <!-- Diagnostics Banner (Appears if backend is offline) -->
+            <div class="diagnostic-banner hidden" id="backend-alert-banner" role="alert">
+                <div class="diagnostic-content">
+                    <div class="diagnostic-icon">⚠️</div>
+                    <div class="diagnostic-text">
+                        <strong>Local Flask Backend Not Responding</strong>
+                        <p>Inference requires the local Python server. Start it in terminal:</p>
+                        <div class="cmd-badge" id="copy-start-cmd" title="Click to copy command">
+                            <span>.\.venv\Scripts\python.exe app.py</span>
+                            <small>📋 copy</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="diagnostic-actions">
+                    <button class="action-btn" id="retry-backend-btn">Retry Connection</button>
+                    <button class="action-btn primary" id="open-diagnostics-btn">Connection Settings</button>
+                </div>
+            </div>
+
+            <!-- Stats Metric Strip -->
+            <section class="stats" aria-label="Workspace statistics">
+                <div class="stat">
+                    <span class="stat-label">Model Architecture</span>
+                    <span class="stat-value model-stat" id="model-name">openai/clip-vit-base-patch32</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Inference Mode</span>
+                    <span class="stat-value" id="mode-stat">Zero-shot</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Session Predictions</span>
+                    <span class="stat-value" id="session-prediction-count">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Prototype Examples</span>
+                    <span class="stat-value" id="example-count">0</span>
+                </div>
+            </section>
+
+            <!-- Workspace Columns -->
+            <div class="workspace" id="classification-workspace">
+                <!-- Right Column: Input Studio -->
+                <section class="panel" id="identify-panel">
+                    <div class="panel-head">
+                        <h2>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            Query Image & Classification
+                        </h2>
+                        <span class="panel-kicker">Step 01 / Input</span>
+                    </div>
+
+                    <div class="panel-body">
+                        <!-- Mode Tabs -->
+                        <div class="mode-row" id="mode-buttons" role="tablist" aria-label="Classification mode"></div>
+
+                        <!-- Upload Dropzone -->
+                        <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop or select image to classify">
+                            <div class="upload-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            </div>
+                            <h3>Drag & drop your query image here</h3>
+                            <p>PNG, JPG, JPEG, WEBP · up to 10 MB · or press <strong>Ctrl+V</strong> to paste from clipboard</p>
+                            <span id="browse-button-host"></span>
+                            <input id="file-input" type="file" accept=".jpg,.jpeg,.png,.webp,image/png,image/jpeg,image/webp">
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div class="image-preview" id="image-preview">
+                            <img id="preview-image" alt="Selected query image preview">
+                            <div class="preview-overlay">
+                                <span class="preview-tag">Ready for inference</span>
+                                <div class="preview-actions">
+                                    <button class="preview-btn" id="change-image-btn" type="button">Change Image</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sample Presets Strip (Instant 1-click test images) -->
+                        <div class="preset-strip" id="sample-presets">
+                            <span class="preset-title">Sample Presets:</span>
+                            <button class="preset-chip" type="button" data-sample="dog">🐕 Golden Retriever</button>
+                            <button class="preset-chip" type="button" data-sample="car">🏎️ Sports Car</button>
+                            <button class="preset-chip" type="button" data-sample="coffee">☕ Espresso Cup</button>
+                            <button class="preset-chip" type="button" data-sample="mountain">🏔️ Mountain Peak</button>
+                        </div>
+
+                        <p class="inline-error" id="upload-error" role="alert" hidden></p>
+
+                        <!-- Candidate Labels (Zero-Shot) -->
+                        <div class="candidate-settings" id="candidate-settings">
+                            <div class="section-label-row">
+                                <label for="candidate-tag-input">Candidate Labels</label>
+                                <span class="tag-counter" id="tag-counter">0 / 30 labels</span>
+                            </div>
+
+                            <!-- Interactive Tags Chip Editor -->
+                            <div class="tags-container" id="tags-container">
+                                <input id="candidate-tag-input" class="tag-input-inline" type="text" placeholder="Type label and hit Enter or comma…">
+                            </div>
+
+                            <!-- Raw Textarea (synchronized with tags) -->
+                            <textarea id="candidate-input" rows="3" maxlength="2400" placeholder="cat, dog, bicycle&#10;One label per line or comma-separated"></textarea>
+                            <button class="toggle-raw-btn" id="toggle-raw-btn" type="button">⇄ Toggle raw comma/list view</button>
+
+                            <!-- Quick Preset Categories -->
+                            <div class="label-presets">
+                                <span>Presets:</span>
+                                <button class="quick-category-btn" type="button" data-cat="animals">Animals</button>
+                                <button class="quick-category-btn" type="button" data-cat="vehicles">Vehicles</button>
+                                <button class="quick-category-btn" type="button" data-cat="scenes">Nature & Scenes</button>
+                                <button class="quick-category-btn" type="button" data-cat="food">Food & Drinks</button>
+                                <button class="quick-category-btn" type="button" data-cat="objects">Everyday Items</button>
+                            </div>
+                        </div>
+
+                        <!-- Model Hyperparameters & Settings -->
+                        <div class="settings" style="margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-subtle);">
+                            <div class="setting">
+                                <div>
+                                    <label for="prompt-template">Prompt template</label>
+                                    <small>Wraps candidate labels before CLIP text encoding</small>
+                                </div>
+                                <select class="select" id="prompt-template">
+                                    <option value="a photo of {label}">a photo of {label}</option>
+                                    <option value="an image of {label}">an image of {label}</option>
+                                    <option value="a photo of the {label}">a photo of the {label}</option>
+                                    <option value="a close-up photograph of a {label}">a close-up photograph of a {label}</option>
+                                    <option value="{label}">{label} (raw text)</option>
+                                </select>
+                            </div>
+
+                            <div class="setting threshold-setting">
+                                <div>
+                                    <label for="confidence-threshold">Confidence threshold</label>
+                                    <small>Hide results below this ranking score</small>
+                                </div>
+                                <div class="threshold-control">
+                                    <input type="range" id="confidence-threshold" min="0" max="100" step="1" value="0">
+                                    <output id="threshold-value" for="confidence-threshold">0%</output>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Execution Row -->
+                        <div class="run-row">
+                            <span class="run-note" id="run-note">Open image identification</span>
+                            <span id="run-button-host"></span>
+                        </div>
+                        <p class="inline-error" id="request-error" role="alert" hidden></p>
+                    </div>
+                </section>
+
+                <!-- Left Column: Results & Prototypes Stack -->
+                <div class="side-stack">
+                    <!-- Ranked Results Panel -->
+                    <section class="panel results" id="results-panel">
+                        <div class="panel-head">
+                            <h2>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                                Ranked Predictions
+                            </h2>
+                            <div class="result-actions">
+                                <span class="panel-kicker" id="result-state">Waiting for image</span>
+                                <span id="export-json-host"></span>
+                                <span id="export-csv-host"></span>
+                            </div>
+                        </div>
+
+                        <div class="panel-body">
+                            <!-- Hero Top Match Spotlight (Appears on prediction) -->
+                            <div class="top-match-hero" id="top-match-hero" style="display: none;">
+                                <div>
+                                    <div class="top-match-badge">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                        Top Prediction
+                                    </div>
+                                    <div class="top-match-label" id="top-match-label">—</div>
+                                </div>
+                                <div class="top-match-score" id="top-match-score">0.0%</div>
+                            </div>
+
+                            <div class="results-list-container" id="results-list" aria-live="polite">
+                                <p class="empty-state">Upload or pick a sample image and click "Identify image →" to see real-time CLIP rankings.</p>
+                            </div>
+                        </div>
+
+                        <div class="result-caveat" id="result-caveat">
+                            Softmax scores rank only the current candidates; they are not calibrated probabilities. Hover over scores for raw cosine similarities and logits.
+                        </div>
+                    </section>
+
+                    <!-- Few-Shot Prototypes Panel -->
+                    <section class="panel" id="few-shot-panel">
+                        <div class="panel-head">
+                            <h2>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                Few-Shot Prototypes
+                            </h2>
+                            <span class="panel-kicker" id="example-count-label">0 / 8</span>
+                        </div>
+                        <div class="panel-body">
+                            <p class="panel-description">Upload labeled images to compute class prototypes by averaging normalized CLIP image embeddings. Then classify a query image against these prototypes.</p>
+                            
+                            <div class="example-form">
+                                <label for="example-label-input">Class Label for Example</label>
+                                <input id="example-label-input" type="text" maxlength="80" placeholder="e.g. golden retriever">
+                                <input id="example-file-input" type="file" accept=".jpg,.jpeg,.png,.webp,image/png,image/jpeg,image/webp" hidden>
+                                <span id="add-example-host"></span>
+                            </div>
+
+                            <p class="inline-error" id="example-error" role="alert" hidden></p>
+                            <div class="example-list" id="example-list">
+                                <p class="empty-state">No example images added yet.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Session History Panel -->
+                    <section class="panel" id="history-panel">
+                        <div class="panel-head">
+                            <h2>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                Session Predictions Log
+                            </h2>
+                            <span class="panel-kicker" id="history-summary">No predictions yet</span>
+                        </div>
+                        <div class="panel-body">
+                            <div class="history-list" id="history-list">
+                                <p class="empty-state">Predictions performed in this tab will appear here.</p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer>
+                <span>Virtual Vision Studio · Educational CLIP Workspace · Powered by OpenAI CLIP & PyTorch</span>
+                <span>Self-hosted on <code id="footer-origin">127.0.0.1:5000</code> · Local inference</span>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Backend Diagnostics Modal -->
+    <div class="modal-overlay" id="diagnostics-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title">Backend Connection & Settings</h3>
+                <button class="close-btn" id="close-diagnostics-btn" type="button" aria-label="Close modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:6px;">API Server Endpoint URL</label>
+                    <div class="api-url-input-group">
+                        <input type="text" id="api-url-input" placeholder="http://127.0.0.1:5000">
+                        <button class="action-btn primary" id="save-api-url-btn" type="button">Save & Ping</button>
+                    </div>
+                    <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">Default: <code>http://127.0.0.1:5000</code> or relative if served from Flask.</small>
+                </div>
+
+                <div>
+                    <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:6px;">To Start the Backend (PowerShell):</label>
+                    <div class="code-block" id="modal-start-cmd">
+                        .\.venv\Scripts\python.exe app.py
+                    </div>
+                </div>
+
+                <div id="modal-ping-result" style="padding:10px 14px; border-radius:var(--radius-md); background:var(--bg-input); font-size:12px; font-family:var(--font-mono);">
+                    Status: Checking connection…
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="button.js"></script>
+</body>
+</html>
